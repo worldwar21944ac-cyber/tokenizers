@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f6f7f5" />
+    <meta name="description" content="A fast, private tokenizer playground powered by Hugging Face Tokenizers WebAssembly." />
+    <title>Tokenizer Studio — Hugging Face</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      :root { color-scheme: light; --bg: #f6f7f5; --surface: #fff; --ink: #171a18; --muted: #737a75; --line: #e6e9e5; --green: #b8f36b; --green-dark: #4a7617; --purple: #7658d5; --shadow: 0 8px 28px rgba(24, 34, 24, .045); }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 'DM Sans', sans-serif; }
+      button, input, textarea { font: inherit; }
+      button { cursor: pointer; }
+      .shell { max-width: 1240px; padding: 0 32px 64px; margin: auto; }
+      header { height: 72px; border-bottom: 1px solid var(--line); display:flex; align-items:center; justify-content:space-between; margin-bottom: 42px; }
+      .brand { display:flex; align-items:center; gap:11px; font-size:15px; font-weight:700; letter-spacing:-.3px; }
+      .brand-mark { width:32px; height:32px; border-radius:10px; background:var(--green); display:grid; place-items:center; font-size:18px; }
+      .header-right { display:flex; align-items:center; gap:18px; color:var(--muted); font-size:12px; }
+      .live { width:7px; height:7px; border-radius:50%; background:#63b63f; display:inline-block; margin-right:6px; }
+      a { color:inherit; text-decoration:none; }
+      .intro { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:28px; gap:24px; }
+      .eyebrow { color:var(--green-dark); text-transform:uppercase; font:500 10px 'DM Mono',monospace; letter-spacing:1.2px; margin-bottom:9px; }
+      h1 { font-size:clamp(28px,4vw,40px); line-height:1.08; letter-spacing:-1.6px; margin:0; }
+      .intro p { color:var(--muted); margin:10px 0 0; max-width:560px; }
+      .privacy { border:1px solid var(--line); border-radius:9px; padding:8px 11px; white-space:nowrap; color:#5f6b60; background:#fff; font-size:11px; }
+      .card { background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); }
+      .setup { padding:18px 20px; margin-bottom:16px; }
+      .setup-head, .section-head { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+      .label { font-weight:700; font-size:12px; }
+      .subtle { color:var(--muted); font-size:11px; }
+      .model-row { display:flex; gap:10px; margin-top:12px; }
+      input, textarea { border:1px solid var(--line); border-radius:8px; background:#fbfcfa; color:var(--ink); outline:none; transition:border .16s, box-shadow .16s; }
+      input:focus, textarea:focus { border-color:#a6d66b; box-shadow:0 0 0 3px rgba(184,243,107,.2); }
+      #model-input { flex:1; min-width:0; padding:11px 13px; font:12px 'DM Mono',monospace; }
+      .btn { border:1px solid var(--line); border-radius:8px; padding:9px 13px; background:white; color:var(--ink); font-weight:600; font-size:12px; transition:transform .12s, background .15s; }
+      .btn:hover { background:#f6f8f3; } .btn:active { transform:scale(.98); }
+      .btn-primary { background:var(--green); border-color:var(--green); padding:10px 17px; }
+      .btn-primary:hover { background:#a9e85a; }
+      .btn:disabled { opacity:.55; cursor:wait; }
+      .presets { display:flex; gap:7px; flex-wrap:wrap; margin-top:11px; align-items:center; }
+      .preset-label { font-size:10px; color:var(--muted); margin-right:3px; }
+      .chip-btn { border:1px solid var(--line); border-radius:99px; padding:4px 9px; background:#fff; color:#59615b; font:10px 'DM Mono',monospace; }
+      .chip-btn:hover { border-color:#b4d991; color:var(--green-dark); }
+      .status { display:none; margin-top:12px; padding:9px 11px; border-radius:8px; font-size:11px; }
+      .status.show { display:block; } .status.info { color:#52654a; background:#f2f8e9; } .status.error { color:#a13b36; background:#fff0ee; }
+      .status.loading::before { content:''; display:inline-block; width:11px; height:11px; border:2px solid #d5e7c2; border-top-color:#6b9b36; border-radius:50%; animation:spin .7s linear infinite; vertical-align:-2px; margin-right:8px; }
+      @keyframes spin { to { transform:rotate(360deg); } }
+      .workspace { display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:stretch; }
+      .pane { padding:18px 20px; min-width:0; }
+      .section-head { min-height:24px; margin-bottom:14px; }
+      .section-title { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; }
+      .number { width:20px; height:20px; border-radius:6px; background:#f0f3ed; color:#687364; display:grid; place-items:center; font:10px 'DM Mono',monospace; }
+      .toolbar { display:flex; gap:7px; }
+      #input-text { width:100%; min-height:185px; resize:vertical; padding:13px 14px; font-size:13px; line-height:1.65; }
+      .input-footer { display:flex; justify-content:space-between; align-items:center; margin-top:9px; min-height:29px; }
+      .count { color:var(--muted); font:10px 'DM Mono',monospace; }
+      .samples { display:flex; gap:6px; }
+      .sample-btn { border:0; padding:4px 7px; border-radius:6px; background:#f4f6f2; color:#677067; font-size:10px; }
+      .sample-btn:hover { background:#e9f4dc; }
+      .encode-row { display:flex; align-items:center; justify-content:space-between; margin-top:10px; }
+      .hint { color:var(--muted); font-size:10px; }
+      .results { grid-column:1/-1; padding:18px 20px 20px; min-height:230px; }
+      .result-tabs { display:flex; gap:4px; background:#f4f5f2; border-radius:8px; padding:3px; }
+      .tab { border:0; border-radius:6px; padding:5px 10px; color:#747a74; background:transparent; font-size:10px; }
+      .tab.active { color:var(--ink); background:#fff; box-shadow:0 1px 3px #0000000c; }
+      .empty { color:#909790; padding:28px 8px 22px; text-align:center; font-size:12px; }
+      .empty strong { color:#535c54; display:block; font-size:13px; margin-bottom:4px; }
+      .token-list { display:flex; flex-wrap:wrap; gap:7px; padding:4px 0 12px; }
+      .token { display:inline-flex; gap:7px; align-items:center; background:#f7f8f5; border:1px solid #ebeee8; border-radius:7px; padding:6px 8px; max-width:100%; }
+      .token-text { font:11px 'DM Mono',monospace; overflow-wrap:anywhere; white-space:pre-wrap; }
+      .token-id { color:#8a9189; border-left:1px solid #dfe4dc; padding-left:7px; font:9px 'DM Mono',monospace; }
+      .token:nth-child(4n+1) { background:#f0f8e7; border-color:#e4f0d7; } .token:nth-child(4n+2) { background:#f1effb; border-color:#e9e5f7; } .token:nth-child(4n+3) { background:#fff5e8; border-color:#f5ecde; }
+      .result-meta { display:flex; gap:18px; border-top:1px solid var(--line); padding-top:12px; color:var(--muted); font-size:10px; }
+      .result-meta strong { color:#343a35; font:500 11px 'DM Mono',monospace; margin-right:4px; }
+      .code-output { display:none; padding:14px; background:#f8f9f7; border:1px solid var(--line); border-radius:8px; white-space:pre-wrap; overflow-wrap:anywhere; font:11px/1.7 'DM Mono',monospace; color:#4e5850; max-height:330px; overflow:auto; }
+      .decoded { padding:14px; background:#f8f9f7; border:1px solid var(--line); border-radius:8px; white-space:pre-wrap; overflow-wrap:anywhere; font-size:13px; min-height:70px; }
+      .hidden { display:none !important; }
+      footer { margin-top:20px; color:#939a93; font-size:10px; display:flex; justify-content:space-between; gap:16px; }
+      footer a { text-decoration:underline; text-underline-offset:2px; }
+      @media(max-width:760px) { .shell{padding:0 16px 40px} header{margin-bottom:28px} .intro{align-items:flex-start; flex-direction:column; gap:12px} .workspace{grid-template-columns:1fr} .results{grid-column:auto} .header-right .header-doc{display:none} }
+      @media(max-width:480px) { .model-row{flex-wrap:wrap} #model-input{flex-basis:100%} .setup,.pane,.results{padding:15px} .samples{display:none} .result-meta{gap:10px; flex-wrap:wrap} }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header>
+        <a class="brand" href="#"><span class="brand-mark">⌘</span><span>tokenizers<span style="font-weight:400;color:#858b85"> / studio</span></span></a>
+        <div class="header-right"><span><i class="live"></i>WebAssembly powered</span><a class="header-doc" href="https://huggingface.co/docs/tokenizers" target="_blank" rel="noreferrer">Documentation ↗</a></div>
+      </header>
+      <main>
+        <section class="intro">
+          <div><div class="eyebrow">A tokenizer playground</div><h1>Words in.<br />Tokens out.</h1><p>Explore how your favorite language models see text. Fast, accurate tokenization runs right here in your browser.</p></div>
+          <div class="privacy">✳ &nbsp;Your text stays on your device</div>
+        </section>
+        <section class="card setup" aria-labelledby="model-label">
+          <div class="setup-head"><div><div class="label" id="model-label">Choose a tokenizer</div><div class="subtle">Enter a Hugging Face model ID with a tokenizer.json file</div></div><span class="subtle" id="model-state">No model loaded</span></div>
+          <div class="model-row"><input id="model-input" aria-label="Hugging Face model ID" value="openai-community/gpt2" placeholder="organization/model-name" /><button class="btn btn-primary" id="load-button">Load tokenizer <span aria-hidden="true">→</span></button></div>
+          <div class="presets"><span class="preset-label">TRY A MODEL</span><button class="chip-btn" data-model="openai-community/gpt2">GPT-2</button><button class="chip-btn" data-model="bert-base-uncased">BERT</button><button class="chip-btn" data-model="FacebookAI/roberta-base">RoBERTa</button></div>
+          <div class="status" id="status" role="status" aria-live="polite"></div>
+        </section>
+        <div class="workspace">
+          <section class="card pane" aria-labelledby="input-title">
+            <div class="section-head"><div class="section-title" id="input-title"><span class="number">01</span> Input text</div><button class="btn" id="clear-button" title="Clear input">Clear</button></div>
+            <textarea id="input-text" aria-label="Text to tokenize" placeholder="Type or paste some text here…" spellcheck="false"></textarea>
+            <div class="input-footer"><span class="count" id="char-count">0 characters</span><div class="samples"><button class="sample-btn" data-sample="Hello, world!">Hello world</button><button class="sample-btn" data-sample="Tokenization makes language models work. 🚀">With emoji</button><button class="sample-btn" data-sample="The quick brown fox jumps over the lazy dog.">A sentence</button></div></div>
+            <div class="encode-row"><span class="hint">Press <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + <kbd>Enter</kbd> to encode</span><button class="btn btn-primary" id="encode-button" disabled>Encode text →</button></div>
+          </section>
+          <section class="card pane" aria-labelledby="output-title">
+            <div class="section-head"><div class="section-title" id="output-title"><span class="number">02</span> Token breakdown</div><div class="toolbar"><button class="btn" id="copy-button" disabled>Copy IDs</button></div></div>
+            <div class="empty" id="token-empty"><strong>Ready when you are</strong>Load a tokenizer, then encode your text to see its tokens.</div>
+            <div class="token-list" id="token-list"></div>
+            <div class="result-meta hidden" id="result-meta"><span><strong id="token-total">0</strong> tokens</span><span><strong id="char-total">0</strong> characters</span><span><strong id="ratio-total">—</strong> chars / token</span></div>
+          </section>
+          <section class="card results" aria-labelledby="results-title">
+            <div class="section-head"><div class="section-title" id="results-title"><span class="number">03</span> Explore output</div><div class="result-tabs" role="tablist" aria-label="Token output format"><button class="tab active" role="tab" aria-selected="true" data-tab="tokens">Tokens</button><button class="tab" role="tab" aria-selected="false" data-tab="ids">Token IDs</button><button class="tab" role="tab" aria-selected="false" data-tab="decoded">Decode</button></div></div>
+            <div class="empty" id="detail-empty">Detailed output appears here after encoding.</div>
+            <div class="code-output" id="ids-output"></div>
+            <div class="decoded hidden" id="decoded-output"></div>
+            <div class="token-list hidden" id="detail-tokens"></div>
+          </section>
+        </div>
+      </main>
+      <footer><span>Built with <a href="https://github.com/huggingface/tokenizers" target="_blank" rel="noreferrer">🤗 Tokenizers</a> WebAssembly</span><span>Runs locally in your browser · Model files load from the Hugging Face Hub</span></footer>
+    </div>
+    <script type="module">
+      const modelInput = document.querySelector('#model-input');
+      const inputText = document.querySelector('#input-text');
+      const loadButton = document.querySelector('#load-button');
+      const encodeButton = document.querySelector('#encode-button');
+      const status = document.querySelector('#status');
+      const modelState = document.querySelector('#model-state');
+      const tokenList = document.querySelector('#token-list');
+      const detailTokens = document.querySelector('#detail-tokens');
+      const tokenEmpty = document.querySelector('#token-empty');
+      const detailEmpty = document.querySelector('#detail-empty');
+      const idsOutput = document.querySelector('#ids-output');
+      const decodedOutput = document.querySelector('#decoded-output');
+      let Tokenizer;
+      let tokenizer = null;
+      let currentIds = null;
+      let currentTokens = null;
+      let activeTab = 'tokens';
+
+      function showStatus(message, kind = 'info') {
+        status.textContent = message;
+        status.className = `status show ${kind}`;
+        if (kind !== 'loading') status.classList.remove('loading');
+        else status.classList.add('loading');
+      }
+      function setBusy(busy) {
+        loadButton.disabled = busy;
+        loadButton.textContent = busy ? 'Loading…' : 'Load tokenizer →';
+        if (busy) encodeButton.disabled = true;
+      }
+      function setEmpty() {
+        currentIds = null; currentTokens = null;
+        tokenList.replaceChildren(); detailTokens.replaceChildren();
+        tokenEmpty.classList.remove('hidden');
+        document.querySelector('#result-meta').classList.add('hidden');
+        document.querySelector('#copy-button').disabled = true;
+        idsOutput.textContent = ''; decodedOutput.textContent = '';
+        renderTab();
+      }
+      function safeToken(value) {
+        const span = document.createElement('span');
+        span.className = 'token-text';
+        span.textContent = value === '' ? '∅' : value;
+        return span;
+      }
+      function makeTokenNodes(target) {
+        const fragment = document.createDocumentFragment();
+        currentTokens.forEach((value, index) => {
+          const token = document.createElement('span');
+          token.className = 'token';
+          token.append(safeToken(value));
+          const id = document.createElement('span');
+          id.className = 'token-id';
+          id.textContent = currentIds[index] ?? '—';
+          token.append(id);
+          fragment.append(token);
+        });
+        target.replaceChildren(fragment);
+      }
+      function renderTab() {
+        document.querySelectorAll('.tab').forEach(button => {
+          const selected = button.dataset.tab === activeTab;
+          button.classList.toggle('active', selected);
+          button.setAttribute('aria-selected', String(selected));
+        });
+        const hasResult = currentIds !== null;
+        detailEmpty.classList.toggle('hidden', hasResult);
+        idsOutput.style.display = hasResult && activeTab === 'ids' ? 'block' : 'none';
+        decodedOutput.classList.toggle('hidden', !hasResult || activeTab !== 'decoded');
+        detailTokens.classList.toggle('hidden', !hasResult || activeTab !== 'tokens');
+        if (!hasResult) detailEmpty.classList.remove('hidden');
+      }
+      async function loadTokenizer() {
+        const model = modelInput.value.trim();
+        if (!model || !model.includes('/')) {
+          showStatus('Enter a model ID in the format organization/model-name.', 'error');
+          modelInput.focus(); return;
+        }
+        setBusy(true);
+        modelState.textContent = 'Loading model…';
+        showStatus(`Downloading ${model} tokenizer. The first load may take a moment…`, 'loading');
+        try {
+          if (!Tokenizer) {
+            const wasm = await import('https://esm.sh/tokenizers-wasm@latest');
+            Tokenizer = wasm.Tokenizer;
+          }
+          tokenizer = await Tokenizer.from_pretrained(model);
+          modelState.textContent = model;
+          encodeButton.disabled = false;
+          showStatus(`Tokenizer ready: ${model}`, 'info');
+          setTimeout(() => { if (status.textContent.startsWith('Tokenizer ready:')) status.classList.remove('show'); }, 3500);
+          if (inputText.value.trim()) encodeText();
+        } catch (error) {
+          tokenizer = null;
+          encodeButton.disabled = true;
+          modelState.textContent = 'Could not load model';
+          const message = error?.message || String(error);
+          showStatus(`Couldn't load “${model}”. Check the model ID, network connection, and that the model has a public tokenizer.json. ${message}`, 'error');
+        } finally { setBusy(false); }
+      }
+      function encodeText() {
+        if (!tokenizer) { showStatus('Load a tokenizer before encoding.', 'error'); return; }
+        try {
+          const text = inputText.value;
+          currentIds = Array.from(tokenizer.encode(text));
+          currentTokens = tokenizer.decode_tokens(currentIds);
+          tokenEmpty.classList.add('hidden');
+          makeTokenNodes(tokenList);
+          makeTokenNodes(detailTokens);
+          idsOutput.textContent = JSON.stringify(currentIds, null, 2);
+          decodedOutput.textContent = tokenizer.decode(currentIds);
+          document.querySelector('#token-total').textContent = currentIds.length.toLocaleString();
+          document.querySelector('#char-total').textContent = text.length.toLocaleString();
+          document.querySelector('#ratio-total').textContent = currentIds.length ? (text.length / currentIds.length).toFixed(1) : '—';
+          document.querySelector('#result-meta').classList.remove('hidden');
+          document.querySelector('#copy-button').disabled = false;
+          renderTab();
+          status.classList.remove('show');
+        } catch (error) {
+          showStatus(`Encoding failed: ${error?.message || error}`, 'error');
+        }
+      }
+      loadButton.addEventListener('click', loadTokenizer);
+      encodeButton.addEventListener('click', encodeText);
+      modelInput.addEventListener('keydown', event => { if (event.key === 'Enter') loadTokenizer(); });
+      inputText.addEventListener('input', () => {
+        const length = inputText.value.length;
+        document.querySelector('#char-count').textContent = `${length.toLocaleString()} ${length === 1 ? 'character' : 'characters'}`;
+      });
+      inputText.addEventListener('keydown', event => { if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') encodeText(); });
+      document.querySelector('#clear-button').addEventListener('click', () => { inputText.value = ''; inputText.dispatchEvent(new Event('input')); setEmpty(); inputText.focus(); });
+      document.querySelectorAll('[data-model]').forEach(button => button.addEventListener('click', () => { modelInput.value = button.dataset.model; loadTokenizer(); }));
+      document.querySelectorAll('[data-sample]').forEach(button => button.addEventListener('click', () => { inputText.value = button.dataset.sample; inputText.dispatchEvent(new Event('input')); if (tokenizer) encodeText(); }));
+      document.querySelectorAll('.tab').forEach(button => button.addEventListener('click', () => { activeTab = button.dataset.tab; renderTab(); }));
+      document.querySelector('#copy-button').addEventListener('click', async event => {
+        if (!currentIds) return;
+        try {
+          await navigator.clipboard.writeText(JSON.stringify(currentIds));
+          const button = event.currentTarget; button.textContent = 'Copied!';
+          setTimeout(() => { button.textContent = 'Copy IDs'; }, 1400);
+        } catch { showStatus('Clipboard access is unavailable. Select and copy the IDs instead.', 'error'); }
+      });
+      // Load the default tokenizer on startup so the playground is ready to use.
+      loadTokenizer();
+    </script>
+  </body>
+</html>
